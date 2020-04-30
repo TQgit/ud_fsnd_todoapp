@@ -11,6 +11,19 @@
             list-style: none;
             padding: 0;
             margin: 0;
+            width: 350px;
+        }
+        li {
+            clear: both;
+        }
+        li button {
+            -webkit-appearance: none;
+            border: none;
+            outline: none;
+            color: orangered;
+            float: right;
+            cursor: pointer;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -22,7 +35,11 @@
 </form>
 <ul id="todos">
     {% for d in data %}
-    <li><input type="checkbox" data-id="{{ d.id }}" class="check-completed" {% if d.completed %} checked {% endif %} />{{ d.description }}</li>
+    <li>
+        <input type="checkbox" data-id="{{ d.id }}" class="check-completed" {% if d.completed %} checked {% endif %} />
+        {{ d.description }}
+        <button class="delete-button" data-id="{{ d.id }}">&cross;</button>
+    </li>
     {% endfor %}
 </ul>
 </body>
@@ -40,6 +57,21 @@
                 document.getElementById('error').className = 'hidden';
                 }
             ).catch(function () {
+            document.getElementById('error').className = '';
+        })
+        }
+    }
+    const delButtons = document.querySelectorAll('.delete-button');
+    for(let button of delButtons) {
+        button.onclick = function(e) {
+            const data_id = e.target.dataset['id'];
+            fetch('/todos/' + data_id + '/delete-todo', {
+                method: 'DELETE',
+                redirect: 'follow'
+            }).then(function () {
+                document.getElementById('error').className = 'hidden'
+                location.reload()
+            }).catch(function () {
             document.getElementById('error').className = '';
         })
         }
