@@ -15,9 +15,17 @@ class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
     completed = db.Column(db.Boolean, nullable=False, default=False)
+    list_id = db.Column(db.Integer, db.ForeignKey('todolists.id'), nullable=False)
 
     def __repr__(self):
         return f'<todo id:{self.id}, description:{self.description}>'
+
+
+class TodoList(db.Model):
+    __tablename__ = 'todolists'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    todos = db.relationship('Todo', backref='list', lazy=True)
 
 
 @app.route('/todos/create', methods=['POST'])
@@ -26,10 +34,10 @@ def create_todo():
     body = {}
     try:
         description = request.get_json()['description']
-        todo = Todo(description=description)
+        list_id = request.get_json()['list_id']
+        todo = Todo(description=description, list_id=list_id)
         db.session.add(todo)
         db.session.commit()
-        body['description'] = todo.description
     except:
         error = True
         print(sys.exc_info())
@@ -70,6 +78,12 @@ def delete_todo(todo_id):
     return redirect(url_for('index'))
 
 
-@app.route('/', methods=['GET', 'DELETE', 'POST'])
+@app.route('/lists/<list_id>')
+def get_list_todos(list_id):
+    return render_template('index.html', lists=TodoList.query.all(), active_list=TodoList.query.get(list_id),
+           todos=Todo.query.filter_by(list_id=list_id).order_by('id').all())
+
+
+@app.route('/')
 def index():
-    return render_template('index.html', data=Todo.query.order_by('id').all())
+    return redirect(url_for('get_list_todos', list_id=1))
