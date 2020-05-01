@@ -12,6 +12,9 @@
             list-style: none;
             padding: 0;
             margin: 0;
+        }
+
+        #todos {
             width: 400px;
         }
 
@@ -19,7 +22,7 @@
             clear: both;
         }
 
-        li button {
+        button {
             -webkit-appearance: none;
             border: none;
             outline: none;
@@ -27,6 +30,16 @@
             float: right;
             cursor: pointer;
             font-size: 12px;
+        }
+
+        .list-create-button {
+            float: none;
+            font-size: 14px;
+            color: black;
+        }
+
+        .list-delete-button {
+            margin-right: 15px;
         }
 
         .list-wrapper, .todo-wrapper {
@@ -43,16 +56,29 @@
 <div id='error' class="hidden" style="color:orangered">Something went wrong while processing your request!</div>
 <div class="list-wrapper">
     <h3>Lists</h3>
+    <form id="list-form">
+        <input type="text" id="list-name" placeholder="Insert new list..."/>
+        <button class="list-create-button">&plus;</button>
+    </form>
     <ul>
         {% for l in lists %}
-        <li> <a href="/lists/{{ l.id }}">{{ l.name }}</a></li>
-        {% endfor %}
+        <li>
+            {% if active_list.id != l.id %}
+            <a href="/lists/{{ l.id }}">{{ l.name }}</a>
+            {% else %}
+            {{ l.name }}
+            {% endif %}
+            {% if l.id != 1 %}
+            <button class="list-delete-button" data-id="{{ l.id }}">&cross;</button>
+            {% endif %}
+            {% endfor %}
+        </li>
     </ul>
 </div>
 <div class="todo-wrapper">
-    <h4>{{ active_list.name }}</h4>
+    <h4>{{ active_list.name }} List</h4>
     <form id="form">
-        <input type="text" id="description" name="description"/>
+        <input type="text" id="description" name="description" placeholder="Insert new to-do item..."/>
         <input type="submit" value="Create"/>
     </form>
     <ul id="todos">
@@ -61,7 +87,7 @@
             <input type="checkbox" data-id="{{ d.id }}" class="check-completed" {% if d.completed %} checked {% endif
                    %}/>
             {{ d.description }}
-            <button class="delete-button" data-id="{{ d.id }}">&cross;</button>
+            <button type="submit" class="delete-button" data-id="{{ d.id }}">&cross;</button>
         </li>
         {% endfor %}
     </ul>
@@ -85,13 +111,31 @@
             })
         }
     }
-    const delButtons = document.querySelectorAll('.delete-button');
-    for (let button of delButtons) {
+    const listDelButtons = document.querySelectorAll('.list-delete-button');
+    for (let button of listDelButtons) {
+        button.onclick = function (e) {
+            const data_id = e.target.dataset['id'];
+            fetch('/lists/' + data_id + '/delete-list', {
+                method: 'DELETE'
+            }).then(function () {
+                document.getElementById('error').className = 'hidden'
+                if({{ active_list.id }} == data_id) {
+                    location.replace('/');
+                } else {
+                    location.reload();
+                }
+            }).catch(function (error) {
+                console.log(error)
+                document.getElementById('error').className = '';
+        })
+        }
+    }
+    const todoDelButtons = document.querySelectorAll('.delete-button');
+    for (let button of todoDelButtons) {
         button.onclick = function (e) {
             const data_id = e.target.dataset['id'];
             fetch('/todos/' + data_id + '/delete-todo', {
-                method: 'DELETE',
-                redirect: 'follow'
+                method: 'DELETE'
             }).then(function () {
                 document.getElementById('error').className = 'hidden'
                 location.reload()
@@ -100,18 +144,34 @@
             })
         }
     }
+    document.getElementById('list-form').onsubmit = function (e) {
+        e.preventDefault();
+        fetch('/lists/create', {
+            method: 'POST',
+            body: JSON.stringify({
+                'name': document.getElementById('list-name').value
+            }),
+            headers: {'Content-Type': 'application/json'}
+        }).then(function () {
+            document.getElementById('error').className = 'hidden';
+            location.reload();
+        }).catch(function () {
+            document.getElementById('error').className = '';
+        })
+    }
     document.getElementById('form').onsubmit = function (e) {
         e.preventDefault();
         fetch('/todos/create', {
             method: 'POST',
             body: JSON.stringify({
                 'description': document.getElementById('description').value,
-                'list_id': {{ active_list.id }}
-            }),
-            headers: {
-                'content-type': 'application/json'
-            }
-        }).then(function () {
+                'list_id': {{ active_list.id }}}),
+        headers: {
+            'content-type'
+        :
+            'application/json'
+        }
+    }).then(function () {
             document.getElementById('error').className = 'hidden';
             location.reload();
         }).catch(function () {
